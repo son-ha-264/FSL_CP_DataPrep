@@ -7,6 +7,8 @@ Order for running scripts:
 
 2. chembl-full-classification.py
 
-3. build_label_matrix.ipynb
+3. create_cellpainting_index.ipynb
 
-4. extract_assay_target.ipynb
+4. build_label_matrix.ipynb
+
+5. extract_assay_target.ipynb

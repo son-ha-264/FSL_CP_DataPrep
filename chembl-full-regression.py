@@ -45,10 +45,14 @@ parser.add_argument("--version", default="24", type=str, help="chembl version to
 args = parser.parse_args()
 
 # File Paths
-# chembl_db_path = r"D:\Projects\Cellpainting\ChemBL\chembl_23_sqlite\chembl_23.db"
+chembl_db_path = "/home/son.ha/FSL_CP_DataPrep/sql/chembl_29_sqlite/chembl_29.db"
+out_path = "/home/son.ha/FSL_CP_DataPrep/temp"
+chembl_version_prefix = "chembl29"
+"""
 chembl_db_path = args.db
 out_path = args.out
 chembl_version_prefix = "chembl{}".format(args.version)
+"""
 
 # Open ChemBL
 db = None
