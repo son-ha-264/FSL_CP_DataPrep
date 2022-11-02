@@ -8,14 +8,15 @@ import progressbar
 from scipy.io import mmwrite
 from scipy.sparse import lil_matrix
 
-from utils.queries import query_all_compounds, query_compounds_active_inactive, query_assays_active_inactive
+from utils.queries import query_all_compounds, query_compounds_pchembl_value, query_assays_pchembl
 
 
 def save_sparse_matrices(out_path, filename, values, counts):
     # mat_dict = {}
-    values_coo = values.tocoo()
     # counts_coo = counts.tocoo()
+    values_coo = values.tocoo()
     # coo_to_dict(counts_coo, mat_dict, "counts")
+    # values_coo.data = values_coo.data / counts_coo.data
     # coo_to_dict(values_coo, mat_dict, "values")
     # --
     # np.savez(os.path.join(out_path, filename + ".npz"), **mat_dict)
@@ -44,12 +45,14 @@ parser.add_argument("--version", default="24", type=str, help="chembl version to
 args = parser.parse_args()
 
 # File Paths
-chembl_db_path = "/home/son.ha/FSL_CP_DataPrep/sql/chembl_29_sqlite/chembl_29.db"
+chembl_db_path = "/home/son.ha/FSL_CP_DataPrep/sql/chembl_31_sqlite/chembl_31.db"
 out_path = "/home/son.ha/FSL_CP_DataPrep/temp"
-chembl_version_prefix = "chembl29"
-# chembl_db_path = args.db
-# out_path = args.out
-# chembl_version_prefix = "chembl{}".format(args.version)
+chembl_version_prefix = "chembl31"
+"""
+chembl_db_path = args.db
+out_path = args.out
+chembl_version_prefix = "chembl{}".format(args.version)
+"""
 
 # Open ChemBL
 db = None
@@ -64,12 +67,11 @@ try:
     compound_dict = {c: i for i, c in enumerate(compounds)}
     # Query assays
     print("Preparing Assay Index")
-    assays_targets = cursor.execute(query_assays_active_inactive).fetchall()
-    assays = [a[0] for a in assays_targets]
+    assays = [a[0] for a in cursor.execute(query_assays_pchembl).fetchall()]
     assay_dict = {a: i for i, a in enumerate(assays)}
-    # Query relevant comments
-    print("Query all Comments")
-    comments = cursor.execute(query_compounds_active_inactive).fetchall()
+    # Query relevant pchembl values
+    print("Query all values")
+    pchembl_values = cursor.execute(query_compounds_pchembl_value).fetchall()
 
     # Store number of compounds and assays
     n_assays = len(assays)
@@ -79,29 +81,25 @@ try:
 
     # Set up progress bar
     _pbw = ['Sanitizing ChEMBL:', progressbar.ETA()]
-    progress = progressbar.ProgressBar(widgets=_pbw, maxval=len(comments)).start()
+    progress = progressbar.ProgressBar(widgets=_pbw, maxval=len(pchembl_values)).start()
 
     # Label matrix
-    classification_labels = lil_matrix((n_compounds, n_assays), dtype=int)
+    regression_values = lil_matrix((n_compounds, n_assays), dtype=float)
     counts = lil_matrix((n_compounds, n_assays), dtype=int)
 
     # Query assays for compounds
-    for i, comment in enumerate(comments):
-        inchikey = comment[0]
-        std_type = comment[1]
-        state = comment[2]
-        assay = comment[3]
-        # map state value
-        state_value = -1
-        if state in ("active", "Active"):
-            state_value = 1
+    for i, measurement in enumerate(pchembl_values):
+        inchikey = measurement[0]
+        std_type = measurement[1]
+        pchembl = measurement[2]
+        assay = measurement[3]
 
         # find cell in label matrix
         row = compound_dict[inchikey]
         col = assay_dict[assay]
 
         # set value
-        classification_labels[row, col] += state_value
+        regression_values[row, col] += pchembl
         counts[row, col] += 1
 
         # update progress
@@ -109,19 +107,20 @@ try:
 
     # remove zero rows
     print("Pruning...")
-    nnz_rows = classification_labels.getnnz(1) > 0
+    nnz_rows = regression_values.getnnz(1) > 0
     compounds = list(compress(compounds, nnz_rows))
     compounds_smiles = list(compress(compounds_smiles, nnz_rows))
-    classification_labels = classification_labels[nnz_rows]
+    classification_labels = regression_values[nnz_rows]
     counts = counts[nnz_rows]
 
     print("Saving...")
-    save_sparse_matrices(out_path, "{}-classification".format(chembl_version_prefix), classification_labels, counts)
-    save_index(os.path.join(out_path, "{}-classification-compound-index.csv".format(chembl_version_prefix)), compounds, compounds_smiles)
-    np.savetxt(os.path.join(out_path, "{}-classification-assay-index.csv".format(chembl_version_prefix)), assays, fmt="%d", header="ASSAY_ID", comments="")
+    # regression_labels.data = regression_labels.data / counts.data
+    save_sparse_matrices(out_path, "{}-regression".format(chembl_version_prefix), regression_values, counts)
+    save_index(os.path.join(out_path, "{}-regression-compound-index.csv".format(chembl_version_prefix)), compounds, compounds_smiles)
+    np.savetxt(os.path.join(out_path, "{}-regression-assay-index.csv".format(chembl_version_prefix)), assays, fmt="%d", header="ASSAY_ID", comments="")
 
 finally:
-    #progress.finish()
+    progress.finish()
     if db:
         db.close()
     print("Finished!")
