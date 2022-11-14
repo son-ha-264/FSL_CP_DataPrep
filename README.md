@@ -1,14 +1,12 @@
 # FSL_CP_DataPrep
 Preparing data for few-shot learning with Cell Painting Assay
 
-Order for running scripts:
+Order for running scripts: from 1 to 11
 
-1. chembl-full-regression.py 
+Extra folders needed:  
 
-2. chembl-full-classification.py
+/csv folder with 'chemical_annotations.csv', 'processed_data_concat.csv'
 
-3. create_cellpainting_index.ipynb
+/sql folder with 'chembl_31_sqlite', or any version of ChEMBL
 
-4. build_label_matrix.ipynb
-
-5. extract_assay_target.ipynb
+Blank /jsonl, /temp and /output folder. The /jsonl and /output folder contain the final data 
