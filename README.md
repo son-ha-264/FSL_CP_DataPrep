@@ -16,4 +16,4 @@ Blank /jsonl, /temp and /output folder. The /jsonl and /output folder contain th
 Also refer to the screenshot attached for the layout of the folder
 
 ## Contact
-Son Ha | [LinkedIn](www.linkedin.com/in/son-ha-479909159) | [Twitter](https://twitter.com/sonha1999)
+Son Ha | [LinkedIn](https://linkedin.com/in/son-ha-479909159) | [Twitter](https://twitter.com/sonha1999)
